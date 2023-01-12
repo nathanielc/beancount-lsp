@@ -1,0 +1,68 @@
+use crate::{Ledger,DatedDirective,Directive,OpenDirective,Account,Currency,BookingMethod};
+
+grammar;
+
+pub Ledger : Ledger = {
+    <directives:DatedDirective*> => Ledger {
+        directives,
+    },
+};
+
+DatedDirective: DatedDirective = {
+    <date:Date> <directive:Directive> => DatedDirective{
+        date,
+        directive,
+    },
+};
+
+Date: String = {
+   date => <>.to_string(),
+}
+Directive: Directive = {
+    open <account:Account> <currencies:Currencies> <booking_method:BookingMethod?> => Directive::Open(OpenDirective{
+        account,
+        currencies,
+        booking_method,
+    })
+}
+
+Account: Account = {
+    <head:word> <mut rest:(colon <word>)*> => {
+        let mut name = vec![head.to_string()];
+        name.extend(rest.iter().map(|s| s.to_string()));
+        Account {
+            name,
+        }
+    }
+}
+
+Currencies: Vec<Currency> = {
+    <head:Currency> <mut rest:("," <Currency>)*> => {
+        let mut currencies = vec![head];
+        currencies.append(&mut rest);
+        currencies
+    }
+}
+
+Currency: Currency = {
+    word => Currency {
+        name: <>.to_string(),
+    }
+}
+
+BookingMethod: BookingMethod = {
+    quote <word> quote => BookingMethod {
+        name: <>.to_string(),
+    }
+}
+
+match {
+    r"\w+" => word,
+    ":" => colon,
+    "\"" => quote,
+    r"\d{4}-\d{2}-\d{2}" => date,
+    "open" => open,
+    _
+}
+
+
